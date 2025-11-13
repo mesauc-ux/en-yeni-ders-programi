@@ -10786,17 +10786,26 @@ HTML_TEMPLATE = '''
 
                 if (!response.ok) {
                     console.warn('Backend güncellemesi başarısız, ama değişiklik tabloda görünüyor');
+                    // Backend başarısız olursa, frontend'deki lokal güncellemesini kullan
+                    updateGlobalScheduleDataAfterSwap(sourceData, targetData);
                 } else {
                     const result = await response.json();
                     console.log('Backend swap sonucu:', result.message);
+
+                    // ✅ BACKEND'DEN GELEN GÜNCEL VERİYİ KULLAN
+                    if (result.updated_schedule) {
+                        globalScheduleData = result.updated_schedule;
+                        console.log('✅ Global schedule data backend\'den güncellendi');
+                    } else {
+                        // Eski backend versiyonu için fallback
+                        updateGlobalScheduleDataAfterSwap(sourceData, targetData);
+                    }
                 }
             } catch (error) {
                 console.warn('Backend bağlantı hatası:', error);
+                // Hata durumunda frontend güncellemesini kullan
+                updateGlobalScheduleDataAfterSwap(sourceData, targetData);
             }
-
-            // ✅ BACKEND BAŞARILI OLSUN YA DA OLMASIN - GLOBALSHEDULEDATA'YI GÜNCELLE
-            // Çünkü ekranda swap zaten yapıldı, validation için frontend verisini güncellememiz şart!
-            updateGlobalScheduleDataAfterSwap(sourceData, targetData);
         }
 
         window.onload = function() {
