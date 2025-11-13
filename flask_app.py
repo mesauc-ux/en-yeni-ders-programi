@@ -10795,7 +10795,7 @@ HTML_TEMPLATE = '''
                     // ✅ BACKEND'DEN GELEN GÜNCEL VERİYİ KULLAN
                     if (result.updated_schedule) {
                         globalScheduleData = result.updated_schedule;
-                        console.log('✅ Global schedule data backend\'den güncellendi');
+                        console.log("✅ Global schedule data backend'den güncellendi");
                     } else {
                         // Eski backend versiyonu için fallback
                         updateGlobalScheduleDataAfterSwap(sourceData, targetData);
