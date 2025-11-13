@@ -16775,9 +16775,13 @@ def export_all_weeks_pdf_server():
     response.headers['Content-Disposition'] = 'attachment; filename=4_Haftalik_Program.pdf'
     return response
 
-@app.route('/swap_lessons', methods=['POST'])
+@app.route('/swap_lessons', methods=['POST', 'OPTIONS'])
 def swap_lessons():
     """Sürükle-bırak ile ders değiştirme - Sınıf dersi swap desteği"""
+
+    # CORS preflight check
+    if request.method == 'OPTIONS':
+        return '', 204
     global schedule_data, schedule_history, schedule_redo_stack
 
     if not schedule_data:
