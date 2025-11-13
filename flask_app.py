@@ -17771,5 +17771,21 @@ def get_history_status():
         'redo_count': len(schedule_redo_stack)
     })
 
+@app.route('/debug_routes')
+def debug_routes():
+    """🔍 DEBUG: Kayıtlı tüm Flask route'larını listele"""
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'path': str(rule)
+        })
+    return jsonify({
+        'total_routes': len(routes),
+        'routes': sorted(routes, key=lambda x: x['path']),
+        'swap_lessons_exists': any('/swap_lessons' in r['path'] for r in routes)
+    })
+
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
