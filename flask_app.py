@@ -122,6 +122,10 @@ init_db()
 
 schedule_data = None
 
+# 🔄 GEÇMİŞ YÖNETİMİ İÇİN GLOBAL DEĞİŞKENLER
+schedule_history = []  # Geri alma için geçmiş (undo stack)
+schedule_redo_stack = []  # İleri alma için (redo stack)
+
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="tr">
@@ -16740,10 +16744,16 @@ def export_all_weeks_pdf_server():
 @app.route('/swap_lessons', methods=['POST'])
 def swap_lessons():
     """Sürükle-bırak ile ders değiştirme - Sınıf dersi swap desteği"""
-    global schedule_data
+    global schedule_data, schedule_history, schedule_redo_stack
 
     if not schedule_data:
         return jsonify({'error': 'Program bulunamadı!'}), 400
+
+    # 🔄 SWAP ÖNCESINDE MEVCUT DURUMU KAYDET
+    import copy
+    schedule_history.append(copy.deepcopy(schedule_data))
+    # Redo stack'i temizle (yeni değişiklik yapıldığında redo geçersiz olur)
+    schedule_redo_stack.clear()
 
     data = request.json
     week = data.get('week', 1)
@@ -16785,7 +16795,8 @@ def swap_lessons():
         return jsonify({
             'message': f'Ders başarıyla taşındı! ({len(moved_lessons)} öğrenci)' if source_is_class else 'Ders başarıyla taşındı!',
             'swapped': False,
-            'moved': moved_lessons
+            'moved': moved_lessons,
+            'updated_schedule': schedule_data
         })
 
     # HEDEF DOLU - SWAP YAPILACAK
@@ -16854,7 +16865,8 @@ def swap_lessons():
         'message': swap_type,
         'swapped': True,
         'source_count': len(source_lessons),
-        'target_count': len(target_lessons)
+        'target_count': len(target_lessons),
+        'updated_schedule': schedule_data
     })
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -17655,6 +17667,78 @@ def update_class_lesson():
     return jsonify({
         'success': True,
         'message': 'Sınıf dersi başarıyla güncellendi!'
+    })
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 🔄 GÜNCEL PROGRAM VERİSİ VE GEÇMİŞ YÖNETİMİ
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@app.route('/get_current_schedule')
+def get_current_schedule():
+    """Güncel program verisini döndür (sadece okuma)"""
+    global schedule_data
+
+    if not schedule_data:
+        return jsonify({'error': 'Program bulunamadı!'}), 400
+
+    return jsonify({'schedule': schedule_data})
+
+@app.route('/undo', methods=['POST'])
+def undo():
+    """Son yapılan değişikliği geri al"""
+    global schedule_data, schedule_history, schedule_redo_stack
+    import copy
+
+    if not schedule_history:
+        return jsonify({'error': 'Geri alınacak işlem yok!'}), 400
+
+    # Mevcut durumu redo stack'e at
+    schedule_redo_stack.append(copy.deepcopy(schedule_data))
+
+    # Önceki duruma dön
+    schedule_data = schedule_history.pop()
+
+    return jsonify({
+        'success': True,
+        'message': 'İşlem geri alındı!',
+        'updated_schedule': schedule_data,
+        'can_undo': len(schedule_history) > 0,
+        'can_redo': True
+    })
+
+@app.route('/redo', methods=['POST'])
+def redo():
+    """Geri alınan işlemi tekrar uygula"""
+    global schedule_data, schedule_history, schedule_redo_stack
+    import copy
+
+    if not schedule_redo_stack:
+        return jsonify({'error': 'İleri alınacak işlem yok!'}), 400
+
+    # Mevcut durumu history'ye at
+    schedule_history.append(copy.deepcopy(schedule_data))
+
+    # İleri al
+    schedule_data = schedule_redo_stack.pop()
+
+    return jsonify({
+        'success': True,
+        'message': 'İşlem tekrar uygulandı!',
+        'updated_schedule': schedule_data,
+        'can_undo': True,
+        'can_redo': len(schedule_redo_stack) > 0
+    })
+
+@app.route('/get_history_status')
+def get_history_status():
+    """Undo/Redo durumunu döndür"""
+    global schedule_history, schedule_redo_stack
+
+    return jsonify({
+        'can_undo': len(schedule_history) > 0,
+        'can_redo': len(schedule_redo_stack) > 0,
+        'history_count': len(schedule_history),
+        'redo_count': len(schedule_redo_stack)
     })
 
 if __name__ == '__main__':
