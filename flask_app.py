@@ -10,6 +10,14 @@ from weasyprint import HTML
 
 app = Flask(__name__)
 
+# CORS desteği - Tüm isteklere CORS header'ları ekle
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
 # SQLite veritabanı bağlantısı
 def get_db():
     conn = sqlite3.connect('/home/mesauc/mysite/ders_programi.db')
