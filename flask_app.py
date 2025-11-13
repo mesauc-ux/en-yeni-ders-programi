@@ -13740,6 +13740,11 @@ def generate_schedule():
     conn.close()
 
     schedule_data = create_four_week_schedule(teachers, students, class_lessons)
+
+    # 🐛 DEBUG: Program oluşturuldu
+    print(f"✅ YENİ PROGRAM OLUŞTURULDU - Toplam hafta sayısı: {len(schedule_data['weeks'])}")
+    print(f"   Hafta 1 ders sayısı: {len(schedule_data['weeks'][0])}")
+
     return jsonify({'schedule': schedule_data})
 
 @app.route('/save_current_schedule', methods=['POST'])
@@ -14548,8 +14553,14 @@ def create_four_week_schedule(teachers, students, class_lessons=[]):
 
 @app.route('/export_excel')
 def export_excel():
+    global schedule_data
+
+    # 🐛 DEBUG: Export başlıyor
+    print(f"📊 EXCEL EXPORT başlıyor...")
     if not schedule_data:
+        print("   ❌ schedule_data BOŞ!")
         return "Lütfen önce program oluşturun!", 400
+    print(f"   ✅ schedule_data mevcut - Hafta 1 ders sayısı: {len(schedule_data['weeks'][0])}")
 
     wb = Workbook()
     wb.remove(wb.active)
@@ -16599,8 +16610,14 @@ def export_conflict_report():
 
 @app.route('/export_weekly_pdf_server/<int:week_num>')
 def export_weekly_pdf_server(week_num):
+    global schedule_data
+
+    # 🐛 DEBUG: PDF Export başlıyor
+    print(f"📄 PDF EXPORT başlıyor (Hafta {week_num})...")
     if not schedule_data:
+        print("   ❌ schedule_data BOŞ!")
         return "Program bulunamadı!", 400
+    print(f"   ✅ schedule_data mevcut - Hafta {week_num} ders sayısı: {len(schedule_data['weeks'][week_num-1])}")
 
     conn = get_db()
     cursor = conn.cursor()
@@ -16859,6 +16876,10 @@ def swap_lessons():
         lesson['day'] = temp_day
         lesson['time'] = temp_time
         lesson['teacher_name'] = temp_teacher  # ✅ Kaynak öğretmene değiştir
+
+    # 🐛 DEBUG: Backend schedule_data güncellendiğini doğrula
+    print(f"🔄 SWAP YAPILDI: {len(source_lessons)} kaynak ders, {len(target_lessons)} hedef ders")
+    print(f"   Kaynak: {temp_day} {temp_time} → Hedef: {target['day']} {target['time']}")
 
     swap_type = ''
     if source_is_class and target_is_class:
